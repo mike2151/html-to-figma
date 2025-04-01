@@ -3,6 +3,10 @@
 ## Overview
 Library to convert HTML to Figma. Open source version of [html.to.design](https://www.figma.com/community/plugin/1159123024924461424)
 
+## Repository Structure:
+- `web-app`: Web version of the product
+- `plugin`: Figma plugin that is directly used in the Figma app
+
 ## Motiviation
 One promise of Generative Ai is that a model might be able to come up with a Figma when prompted. However, models are more likely to produce designs through code (token-based) since that what they were trained on.
 
