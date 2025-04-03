@@ -1,0 +1,1 @@
+Static version of the site to be hosted on GH pages
