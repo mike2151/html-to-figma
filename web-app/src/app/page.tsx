@@ -6,6 +6,8 @@ import CssInput from '../components/CssInput';
 import Preview from '../components/Preview';
 import FigmaOutput from '../components/FigmaOutput';
 import FigmaClipboard from '../components/FigmaClipboard';
+import FigmaClipboardTester from '../components/FigmaClipboardTester';
+import FigmaAnalyzer from '../components/FigmaAnalyzer';
 import { convertHtmlCssToFigma, generateFigmaClipboardData } from '../lib/figma-converter';
 
 export default function Home() {
@@ -62,6 +64,14 @@ export default function Home() {
         <div>
           <h2 className="text-xl font-semibold mb-3">Figma Clipboard (Paste Directly)</h2>
           <FigmaClipboard data={figmaClipboardData} />
+        </div>
+      </div>
+      
+      <div className="mt-6">
+        <h2 className="text-xl font-semibold mb-3">Test Tools</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FigmaClipboardTester />
+          <FigmaAnalyzer />
         </div>
       </div>
     </main>

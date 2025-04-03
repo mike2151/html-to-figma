@@ -1,9 +1,20 @@
 /**
- * Utility functions for working with Figma clipboard data
+ * Improved utility functions for working with Figma clipboard data
+ * Based on analysis of real Figma clipboard data
  */
 
-// Create a minimal node representation for a simple box
-export function createSimpleBox(options: {
+// Generate a random file key similar to what Figma uses
+function generateFigmaFileKey() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 22; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+  
+  // Create a minimal node representation for a simple box
+  export function createSimpleBox(options: {
     width?: number;
     height?: number;
     color?: string;
@@ -47,83 +58,49 @@ export function createSimpleBox(options: {
         }
       ],
       strokes: [],
-      cornerRadius,
       strokeWeight: 0,
-      strokeAlign: 'CENTER'
+      strokeAlign: 'CENTER',
+      cornerRadius
     };
   }
   
-  // Create Figma-compatible clipboard data for a simple example
-  export function createSimpleExampleClipboardData() {
-    // Create a simple frame with some elements
-    const frame = {
-      id: '0:1',
-      name: 'Simple Frame',
-      type: 'FRAME',
-      blendMode: 'NORMAL',
-      absoluteBoundingBox: {
-        x: 0,
-        y: 0,
-        width: 300,
-        height: 200
-      },
-      constraints: {
-        vertical: 'TOP',
-        horizontal: 'LEFT'
-      },
-      fills: [
-        {
-          type: 'SOLID',
-          color: { r: 1, g: 1, b: 1, a: 1 } // White background
-        }
-      ],
-      strokes: [],
-      cornerRadius: 8,
-      children: [
-        createSimpleBox({
-          width: 100,
-          height: 100,
-          color: '#0070f3', // Blue
-          cornerRadius: 4,
-          x: 20,
-          y: 20,
-          name: 'Blue Box'
-        }),
-        createSimpleBox({
-          width: 80,
-          height: 80,
-          color: '#ff0000', // Red
-          cornerRadius: 8,
-          x: 140,
-          y: 40,
-          name: 'Red Box'
-        })
-      ]
-    };
+  // Generate Figma-compatible clipboard data
+  export function generateFigmaClipboardData(figmaNode: any): string {
+    // Generate a random paste ID
+    const pasteID = Math.floor(Math.random() * 10000000);
     
-    // Create the metadata
+    // Create the metadata matching Figma's format
     const metadata = {
-      dataType: 'scene',
-      fileKey: 'IAMA_DUMMY_FILE_KEY_AMA',
-      pasteID: Math.floor(Math.random() * 1000)
+      fileKey: generateFigmaFileKey(),
+      pasteID: pasteID,
+      dataType: "scene"
     };
     
-    // Base64 encode the metadata
-    const metadataBase64 = btoa(JSON.stringify(metadata));
+    // Base64 encode the metadata - append newline like Figma does
+    const metadataBase64 = btoa(JSON.stringify(metadata) + '\n');
     
-    // Serialize and encode the node data
-    const nodeData = btoa(JSON.stringify(frame));
+    // Serialize the node data to match Figma's format
+    const nodeDataString = JSON.stringify(figmaNode);
+    const compressedData = btoa(nodeDataString);
     
-    // Create the HTML structure
-    const clipboardHtml = `
-      <meta charset='utf-8'><html><head><meta charset="utf-8">    <meta charset="utf-8">    </head><body>
-      <span data-metadata="<!--(figmeta)${metadataBase64}(/figmeta)-->"></span>
-      <span data-buffer="<!--(figma)${nodeData}(/figma)-->"></span>
-      <span style="white-space: pre-wrap"></span>
-      </body></html>
-    `;
+    // Create the HTML structure exactly matching Figma's format
+    const clipboardHtml = `<meta charset='utf-8'><meta charset="utf-8"><span data-metadata="<!--(figmeta)${metadataBase64}(/figmeta)-->"></span><span data-buffer="<!--(figma)${compressedData}(/figma)-->"></span><span style="white-space:pre-wrap;"></span>`;
     
     return clipboardHtml;
+  }
+  
+  // Create Figma-compatible clipboard data for a simple box (direct conversion)
+  export function createSimpleBoxClipboardData(options: {
+    width?: number;
+    height?: number;
+    color?: string;
+    cornerRadius?: number;
+    x?: number;
+    y?: number;
+    name?: string;
+  }) {
+    const boxNode = createSimpleBox(options);
+    return generateFigmaClipboardData(boxNode);
   }
   
   // Helper function to convert hex color to RGB
@@ -166,11 +143,12 @@ export function createSimpleBox(options: {
       // Decode the buffer data
       const bufferDecoded = atob(bufferBase64);
       
-      // Attempt to parse as JSON (may not work if using binary format)
+      // Attempt to parse as JSON
       try {
         return JSON.parse(bufferDecoded);
       } catch (e) {
-        // If it's not valid JSON, return the raw decoded data
+        // If it's not valid JSON, it might be using Figma's proprietary format
+        // Return the raw decoded data
         return {
           rawBuffer: bufferDecoded,
           rawMetadata: metadataBase64 ? atob(metadataBase64) : null
@@ -180,4 +158,44 @@ export function createSimpleBox(options: {
       console.error('Error parsing Figma clipboard data:', error);
       return null;
     }
+  }
+  
+  // Create a more precise match for the simple box example provided by Galileo AI
+  export function createGalileoStyleBox(): string {
+    // Create a simple frame with a solid blue fill
+    const simpleFrame = {
+      id: "0:1",
+      type: "RECTANGLE",
+      name: "Rectangle",
+      blendMode: "NORMAL",
+      absoluteBoundingBox: {
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100
+      },
+      constraints: {
+        vertical: "TOP",
+        horizontal: "LEFT"
+      },
+      fills: [
+        {
+          type: "SOLID",
+          color: {
+            r: 0.07058823853731155,
+            g: 0.2235294133424759,
+            b: 0.8823529481887817,
+            a: 1
+          }
+        }
+      ],
+      strokes: [],
+      strokeWeight: 0,
+      strokeAlign: "CENTER",
+      effects: [],
+      cornerRadius: 8,
+    };
+    
+    // Generate the clipboard data
+    return generateFigmaClipboardData(simpleFrame);
   }
