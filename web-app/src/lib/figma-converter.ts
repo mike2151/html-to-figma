@@ -379,3 +379,103 @@ function parseSize(value: string): number | null {
   
   return null;
 }
+
+// New addition: Generate Figma clipboard data
+export function generateFigmaClipboardData(figmaNode: FigmaNode): string {
+  // Create a simplified node structure that mimics Figma's internal format
+  const transformedNode = transformNodeForFigma(figmaNode);
+  
+  // Create the metadata
+  const metadata = {
+    dataType: "scene",
+    fileKey: "IAMA_DUMMY_FILE_KEY_AMA",
+    pasteID: Math.floor(Math.random() * 1000)
+  };
+  
+  // Base64 encode the metadata
+  const metadataBase64 = btoa(JSON.stringify(metadata));
+  
+  // Serialize and compress the node data
+  // This is a simplified version - real Figma clipboard data uses a more complex format
+  const nodeData = compressNodeData(transformedNode);
+  
+  // Create the HTML structure
+  const clipboardHtml = `
+    <meta charset='utf-8'><html><head><meta charset="utf-8">    <meta charset="utf-8">    </head><body>
+    <span data-metadata="<!--(figmeta)${metadataBase64}(/figmeta)-->"></span>
+    <span data-buffer="<!--(figma)${nodeData}(/figma)-->"></span>
+    <span style="white-space: pre-wrap"></span>
+    </body></html>
+  `;
+  
+  return clipboardHtml;
+}
+
+// Transform our node structure to match Figma's internal format more closely
+function transformNodeForFigma(node: FigmaNode): any {
+  // This is a simplified transformation based on observed Figma clipboard format
+  // A real implementation would need more fine-tuning through trial and error
+  
+  const base = {
+    id: `${Math.floor(Math.random() * 1000)}:${Math.floor(Math.random() * 1000)}`,
+    name: node.name,
+    type: node.type,
+    blendMode: "NORMAL",
+    absoluteBoundingBox: {
+      x: node.position?.x || 0,
+      y: node.position?.y || 0,
+      width: node.size?.width || 100,
+      height: node.size?.height || 100
+    },
+    constraints: {
+      vertical: "TOP",
+      horizontal: "LEFT"
+    }
+  };
+  
+  let transformed: any = { ...base };
+  
+  // Add type-specific properties
+  switch (node.type) {
+    case 'FRAME':
+      transformed.fills = (node as FigmaFrameNode).fills || [];
+      transformed.strokes = (node as FigmaFrameNode).strokes || [];
+      transformed.cornerRadius = (node as FigmaFrameNode).cornerRadius || 0;
+      transformed.children = [];
+      
+      // Process children
+      if ((node as FigmaFrameNode).children) {
+        (node as FigmaFrameNode).children.forEach(child => {
+          transformed.children.push(transformNodeForFigma(child));
+        });
+      }
+      break;
+      
+    case 'TEXT':
+      transformed.characters = (node as FigmaTextNode).characters || '';
+      transformed.style = (node as FigmaTextNode).style || {};
+      break;
+      
+    case 'RECTANGLE':
+      transformed.fills = (node as FigmaRectangleNode).fills || [];
+      transformed.strokes = (node as FigmaRectangleNode).strokes || [];
+      transformed.cornerRadius = (node as FigmaRectangleNode).cornerRadius || 0;
+      break;
+  }
+  
+  return transformed;
+}
+
+// Compress node data for Figma clipboard
+// This is a placeholder for the actual compression that Figma uses
+function compressNodeData(node: any): string {
+  // In a real implementation, this would use Figma's specific compression format
+  // For now, we'll just do a simple JSON serialization and Base64 encoding
+  
+  // First, convert to a JSON string
+  const jsonString = JSON.stringify(node);
+  
+  // Then Base64 encode it
+  // Note: Figma likely uses a more sophisticated binary format or compression
+  return btoa(jsonString);
+}
