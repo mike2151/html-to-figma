@@ -20,6 +20,7 @@ if (figma.editorType === 'figma') {
     if (msg.type === 'create-shapes') {
       // This plugin creates rectangles on the screen.
       const numberOfRectangles = msg.count;
+      
 
       const nodes: SceneNode[] = [];
       for (let i = 0; i < numberOfRectangles; i++) {
