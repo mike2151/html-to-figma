@@ -117,6 +117,40 @@
     <div id="message-container">
         </div>
   </div>
-  <script src="ui.js"></script>
+  <script>
+    // Add event listener to the convert button
+    document.getElementById('convert-button').addEventListener('click', () => {
+      // Get the HTML and CSS input values
+      const htmlContent = document.getElementById('html-input').value;
+      const cssContent = document.getElementById('css-input').value;
+      
+      // Send the values to the plugin code
+      parent.postMessage(
+        { 
+          pluginMessage: { 
+            type: 'convert',
+            html: htmlContent,
+            css: cssContent
+          } 
+        },
+        '*'
+      );
+    });
+    
+    // Listen for messages from the plugin code
+    window.onmessage = (event) => {
+      const message = event.data.pluginMessage;
+      if (!message) return;
+      
+      // Handle success and error messages
+      const messageContainer = document.getElementById('message-container');
+      
+      if (message.type === 'success') {
+        messageContainer.innerHTML = `<div class="message success">${message.message}</div>`;
+      } else if (message.type === 'error') {
+        messageContainer.innerHTML = `<div class="message error">${message.message}</div>`;
+      }
+    };
+  </script>
 </body>
 </html>
