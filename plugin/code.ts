@@ -1,8 +1,8 @@
-import { ALLOWED_FIGMA_EDITOR_TYPES } from './constants';
+import { ALLOWED_FIGMA_EDITOR_TYPES, PLUGIN_WINDOW_WIDTH, PLUGIN_WINDOW_HEIGHT } from './constants';
 
 if (ALLOWED_FIGMA_EDITOR_TYPES.includes(figma.editorType)) {
   // This shows the HTML page in "ui.html".
-  figma.showUI(__html__, { width: 575, height: 400 });
+  figma.showUI(__html__, { width: PLUGIN_WINDOW_WIDTH, height: PLUGIN_WINDOW_HEIGHT });
 
   figma.ui.onmessage = async (message) => {
     if (message.type === 'convert') {
@@ -22,13 +22,12 @@ if (ALLOWED_FIGMA_EDITOR_TYPES.includes(figma.editorType)) {
         // Send success message back to UI
         figma.ui.postMessage({
           type: 'success',
-          message: 'Conversion successful! Created ' + nodes.length + ' node(s).'
+          message: 'Conversion successful!'
         });
       } catch (error) {
-        // Send error message back to UI
         figma.ui.postMessage({
           type: 'error',
-          message: 'Error: ' + (error instanceof Error ? error.message : String(error))
+          message: 'Error creating Figma components'
         });
       }
     }
