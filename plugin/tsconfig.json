@@ -3,6 +3,9 @@
     "target": "es2016",
     "lib": ["es2016", "dom"],
     "strict": true,
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
     "typeRoots": [
       "./node_modules/@types",
       "./node_modules/@figma"
