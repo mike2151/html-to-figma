@@ -10,7 +10,7 @@
     body {
       font-family: 'Inter', sans-serif;
       margin: 0;
-      padding: 20px;
+      padding: 10px;
       font-size: 12px;
       color: #333;
       background-color: #f9f9f9;
@@ -22,8 +22,8 @@
       flex-direction: column;
       gap: 16px;
       width: 100%;
-      max-width: 600px;
-      margin: 20px auto;
+      max-width: 500px;
+      margin: 10px auto;
       background-color: #ffffff;
       padding: 20px;
       border-radius: 8px;
@@ -41,13 +41,14 @@
     textarea {
       width: 100%;
       box-sizing: border-box;
-      height: 200px;
+      height: 100px;
       padding: 10px;
       resize: vertical;
       border: 1px solid #e2e2e2;
       border-radius: 4px;
       font-family: monospace;
       font-size: 12px;
+      min-height: 50px;
       line-height: 1.4;
     }
 
@@ -103,12 +104,12 @@
     <div id="code-panel">
       <div>
         <label for="html-input">HTML</label>
-        <textarea id="html-input" placeholder="Enter your HTML here..."></textarea>
+        <textarea rows=2 id="html-input" placeholder="Paste your HTML here..."></textarea>
       </div>
 
       <div style="margin-top: 12px;">
         <label for="css-input">CSS</label>
-        <textarea id="css-input" placeholder="Enter your CSS here..."></textarea>
+        <textarea rows=2 id="css-input" placeholder="Paste your CSS here..."></textarea>
       </div>
     </div>
 

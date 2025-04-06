@@ -6,7 +6,7 @@
 // Runs this code if the plugin is run in Figma
 if (figma.editorType === 'figma') {
   // This shows the HTML page in "ui.html".
-  figma.showUI(__html__, { width: 600, height: 500 });
+  figma.showUI(__html__, { width: 575, height: 400 });
 
   figma.ui.onmessage = async (message) => {
     if (message.type === 'convert') {
@@ -194,7 +194,7 @@ function parseHtml(htmlString: string): HtmlNode[] {
     if (childrenHtml.trim()) {
       node.children = parseHtml(childrenHtml);
     }
-    
+
     
     nodes.push(node);
     currentIndex = htmlString.indexOf('>', closingTagStart) + 1;
