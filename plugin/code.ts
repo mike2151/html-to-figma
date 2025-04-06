@@ -1,4 +1,5 @@
 import { ALLOWED_FIGMA_EDITOR_TYPES, PLUGIN_WINDOW_WIDTH, PLUGIN_WINDOW_HEIGHT } from './constants';
+import { CssRule, HtmlNode } from './types';
 
 if (ALLOWED_FIGMA_EDITOR_TYPES.includes(figma.editorType)) {
   // This shows the HTML page in "ui.html".
@@ -27,26 +28,11 @@ if (ALLOWED_FIGMA_EDITOR_TYPES.includes(figma.editorType)) {
       } catch (error) {
         figma.ui.postMessage({
           type: 'error',
-          message: 'Error creating Figma components'
+          message: 'Error creating converting Figma components'
         });
       }
     }
   };
-}
-
-// Types for our simple HTML parser
-interface HtmlNode {
-  type: 'tag' | 'text';
-  name?: string;
-  attribs?: Record<string, string>;
-  children?: HtmlNode[];
-  data?: string;
-}
-
-// Types for our simple CSS parser
-interface CssRule {
-  selector: string;
-  declarations: Record<string, string>;
 }
 
 /**
