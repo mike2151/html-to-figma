@@ -6,9 +6,7 @@ const Header = () => {
       <div className="container">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            {/* Logo placeholder */}
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              {/* Replace with your actual logo */}
               <span className="text-white font-bold">H2F</span>
             </div>
             <span className="text-xl font-bold text-gray-800">HTML to Figma</span>
