@@ -1,7 +1,18 @@
 import { parseCss } from "./css-parser";
 import { camelCase } from "./figma-conversion-utils";
 import { parseHtml } from "./html-parser";
-import { CssRule, HtmlNode } from "./types";
+import { HTMLElement, TextNode as HtmlTextNode, Node, NodeType } from "node-html-parser";
+import { CssRule } from "./types";
+
+  /**
+   * Load required fonts
+   */
+  async function loadInterFonts(): Promise<void> {
+    await Promise.all([
+      figma.loadFontAsync({ family: "Inter", style: "Regular" }),
+      figma.loadFontAsync({ family: "Inter", style: "Bold" }),
+    ]);
+  }
 
 /**
  * Converts HTML and CSS to Figma nodes
@@ -23,7 +34,7 @@ export async function convertHtmlCssToFigma(
     rootFrame.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
   
     // Load fonts before creating text nodes
-    await loadFonts();
+    await loadInterFonts();
   
     // Process the DOM tree and create Figma nodes
     for (const node of dom) {
@@ -37,19 +48,21 @@ export async function convertHtmlCssToFigma(
  * Process a DOM node and create corresponding Figma nodes
  */
 async function processNode(
-    node: HtmlNode,
+    node: Node,
     cssRules: CssRule[],
     parentNode: FrameNode | GroupNode,
     position = { x: 0, y: 0 },
   ): Promise<void> {
-    // Skip if it's not an element node
-    if (node.type !== "tag") {
-      if (node.type === "text" && node.data && node.data.trim()) {
+    // Handle text nodes
+    if (node.nodeType === NodeType.TEXT_NODE) {
+      const textNode = node as HtmlTextNode;
+      const trimmedText = textNode.text.trim();
+      if (trimmedText) {
         // Create a text node for text content
         const text = figma.createText();
         text.x = position.x;
         text.y = position.y;
-        text.characters = node.data.trim();
+        text.characters = trimmedText;
   
         // Apply text styles (default)
         text.fontSize = 16;
@@ -60,13 +73,18 @@ async function processNode(
       return;
     }
   
-    // Get styles for the node based on CSS rules
-    const styles = getStylesForNode(node, cssRules);
-  
-    // Create appropriate Figma node based on tag
-    let figmaNode: SceneNode;
-  
-    switch (node.name?.toLowerCase()) {
+    // Handle element nodes
+    if (node.nodeType === NodeType.ELEMENT_NODE) {
+      const element = node as HTMLElement;
+      const tagName = element.tagName.toLowerCase();
+      
+      // Get styles for the node based on CSS rules
+      const styles = getStylesForNode(element, cssRules);
+    
+      // Create appropriate Figma node based on tag
+      let figmaNode: SceneNode;
+    
+      switch (tagName) {
       case "div":
       case "section":
       case "article":
@@ -77,21 +95,21 @@ async function processNode(
       case "main":
       case "form":
         // Container elements become frames
-        figmaNode = createFrameNode(node, styles, position);
+        figmaNode = createFrameNode(element, styles, position);
         parentNode.appendChild(figmaNode);
   
         // Process children
-        if (node.children && node.children.length > 0) {
+        if (element.childNodes && element.childNodes.length > 0) {
           let yOffset = 0;
-          for (const child of node.children) {
+          for (const child of element.childNodes) {
             await processNode(child, cssRules, figmaNode as FrameNode, {
               x: 10,
               y: yOffset,
             });
             // Simple flow layout
             if (
-              child.type === "tag" ||
-              (child.type === "text" && child.data?.trim())
+              child.nodeType === NodeType.ELEMENT_NODE ||
+              (child.nodeType === NodeType.TEXT_NODE && (child as HtmlTextNode).text.trim())
             ) {
               yOffset += 30; // Default spacing
             }
@@ -110,32 +128,32 @@ async function processNode(
       case "a":
       case "label":
         // Text elements
-        figmaNode = await createTextNode(node, styles, position);
+        figmaNode = await createTextNode(element, styles, position) as unknown as SceneNode;
         parentNode.appendChild(figmaNode);
         break;
   
       case "button":
       case "input":
         // Button elements
-        figmaNode = createButtonNode(node, styles, position);
+        figmaNode = createButtonNode(element, styles, position);
         parentNode.appendChild(figmaNode);
         break;
   
       case "img":
         // Image elements (placeholder rectangle for now)
-        figmaNode = createRectangleNode(node, styles, position);
+        figmaNode = createRectangleNode(element, styles, position);
         parentNode.appendChild(figmaNode);
         break;
   
       default:
         // Default to a frame for unknown elements
-        figmaNode = createFrameNode(node, styles, position);
+        figmaNode = createFrameNode(element, styles, position);
         parentNode.appendChild(figmaNode);
   
         // Process children
-        if (node.children && node.children.length > 0) {
+        if (element.childNodes && element.childNodes.length > 0) {
           let yOffset = 0;
-          for (const child of node.children) {
+          for (const child of element.childNodes) {
             await processNode(child, cssRules, figmaNode as FrameNode, {
               x: 10,
               y: yOffset,
@@ -151,20 +169,21 @@ async function processNode(
  * Get styles for a DOM node based on CSS rules
  */
 function getStylesForNode(
-    node: HtmlNode,
+    element: HTMLElement,
     cssRules: CssRule[],
   ): Record<string, string> {
     const styles: Record<string, string> = {};
   
     // Process inline style
-    if (node.attribs && node.attribs.style) {
-      const inlineStyles = parseInlineStyle(node.attribs.style);
+    const styleAttr = element.getAttribute('style');
+    if (styleAttr) {
+      const inlineStyles = parseInlineStyle(styleAttr);
       Object.assign(styles, inlineStyles);
     }
   
     // Process CSS rules
     for (const rule of cssRules) {
-      if (doesSelectorMatch(rule.selector, node)) {
+      if (doesSelectorMatch(rule.selector, element)) {
         // Apply the styles from this rule
         Object.assign(styles, rule.declarations);
       }
@@ -198,30 +217,34 @@ function getStylesForNode(
   /**
    * Check if a CSS selector matches a DOM node
    */
-  function doesSelectorMatch(selector: string, node: HtmlNode): boolean {
+  function doesSelectorMatch(selector: string, element: HTMLElement): boolean {
     // This is a very simplified selector matching
     // In a real implementation, you'd need a more sophisticated approach
   
     selector = selector.trim();
-  
+    
     // Element selector
-    if (selector.toLowerCase() === node.name?.toLowerCase()) {
+    if (selector.toLowerCase() === element.tagName.toLowerCase()) {
       return true;
     }
   
     // Class selector
-    if (selector.startsWith(".") && node.attribs && node.attribs.class) {
+    if (selector.startsWith(".")) {
       const className = selector.substring(1);
-      const nodeClasses = node.attribs.class.split(" ");
-      if (nodeClasses.includes(className)) {
-        return true;
+      const classAttr = element.getAttribute('class');
+      if (classAttr) {
+        const classes = classAttr.split(/\s+/);
+        if (classes.includes(className)) {
+          return true;
+        }
       }
     }
   
     // ID selector
-    if (selector.startsWith("#") && node.attribs && node.attribs.id) {
+    if (selector.startsWith("#")) {
       const idName = selector.substring(1);
-      if (node.attribs.id === idName) {
+      const idAttr = element.getAttribute('id');
+      if (idAttr === idName) {
         return true;
       }
     }
@@ -233,12 +256,12 @@ function getStylesForNode(
    * Create a Figma frame node
    */
   function createFrameNode(
-    node: HtmlNode,
+    element: HTMLElement,
     styles: Record<string, string>,
     position: { x: number; y: number },
   ): FrameNode {
     const frame = figma.createFrame();
-    frame.name = node.name || "Frame";
+    frame.name = element.tagName ? element.tagName.toLowerCase() : "Frame";
     frame.x = position.x;
     frame.y = position.y;
   
@@ -292,7 +315,7 @@ function getStylesForNode(
    * Create a Figma text node
    */
   async function createTextNode(
-    node: HtmlNode,
+    element: HTMLElement,
     styles: Record<string, string>,
     position: { x: number; y: number },
   ): Promise<TextNode> {
@@ -301,15 +324,8 @@ function getStylesForNode(
     text.x = position.x;
     text.y = position.y;
   
-    // Extract text content from node
-    let textContent = "";
-    if (node.children) {
-      for (const child of node.children) {
-        if (child.type === "text") {
-          textContent += child.data;
-        }
-      }
-    }
+    // Extract text content from element
+    const textContent = element.text || "";
   
     text.characters = textContent.trim();
   
@@ -318,7 +334,7 @@ function getStylesForNode(
       let fontSize = parseInt(styles.fontSize);
       if (isNaN(fontSize)) {
         // Handle relative font sizes
-        switch (node.name?.toLowerCase()) {
+        switch (element.tagName.toLowerCase()) {
           case "h1":
             fontSize = 32;
             break;
@@ -344,7 +360,7 @@ function getStylesForNode(
       text.fontSize = fontSize;
     } else {
       // Default font size based on tag
-      switch (node.name?.toLowerCase()) {
+      switch (element.tagName.toLowerCase()) {
         case "h1":
           text.fontSize = 32;
           break;
@@ -395,12 +411,12 @@ function getStylesForNode(
    * Create a Figma button node
    */
   function createButtonNode(
-    node: HtmlNode,
+    element: HTMLElement,
     styles: Record<string, string>,
     position: { x: number; y: number },
   ): FrameNode {
     const button = figma.createFrame();
-    button.name = node.name || "Button";
+    button.name = element.tagName ? element.tagName.toLowerCase() : "Button";
     button.x = position.x;
     button.y = position.y;
   
@@ -433,14 +449,7 @@ function getStylesForNode(
     }
   
     // Extract button text
-    let buttonText = "";
-    if (node.children) {
-      for (const child of node.children) {
-        if (child.type === "text") {
-          buttonText += child.data;
-        }
-      }
-    }
+    const buttonText = element.text || "Button";
   
     if (buttonText.trim()) {
       // Create text node for button label
@@ -462,11 +471,12 @@ function getStylesForNode(
    * Create a Figma rectangle node (for images or other elements)
    */
   function createRectangleNode(
-    node: HtmlNode,
+    element: HTMLElement,
     styles: Record<string, string>,
     position: { x: number; y: number },
   ): RectangleNode {
     const rect = figma.createRectangle();
+    rect.name = element.tagName ? element.tagName.toLowerCase() : "Rectangle";
     rect.x = position.x;
     rect.y = position.y;
   
@@ -583,15 +593,4 @@ function getStylesForNode(
   
     return null;
   }
-  
-  /**
-   * Load required fonts
-   */
-  async function loadFonts(): Promise<void> {
-    // Load Inter font for text elements
-    await Promise.all([
-      figma.loadFontAsync({ family: "Inter", style: "Regular" }),
-      figma.loadFontAsync({ family: "Inter", style: "Bold" }),
-    ]);
-  }
-  
+}

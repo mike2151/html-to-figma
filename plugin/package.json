@@ -49,5 +49,8 @@
         }
       ]
     }
+  },
+  "dependencies": {
+    "node-html-parser": "^7.0.1"
   }
 }

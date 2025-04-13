@@ -23,6 +23,7 @@ if (ALLOWED_FIGMA_EDITOR_TYPES.includes(figma.editorType)) {
         displaySuccessMessage("Conversion successful!");
       } catch (error) {
         displayErrorMessage("Error creating converting Figma components");
+        console.error("Error Occured", error);
       }
     }
   };
