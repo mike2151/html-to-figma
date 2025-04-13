@@ -21,17 +21,13 @@ export async function convertHtmlCssToFigma(
     htmlString: string,
     cssString: string,
   ): Promise<SceneNode[]> {
-    // Parse the HTML into a DOM-like structure
     const dom = parseHtml(htmlString);
   
     // Parse the CSS
     const cssRules = parseCss(cssString);
   
     // Create a root frame to hold all elements
-    const rootFrame = figma.createFrame();
-    rootFrame.name = "HTML to Figma";
-    rootFrame.resize(800, 600);
-    rootFrame.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+    const rootFrame = createCanvasForFigma();
   
     // Load fonts before creating text nodes
     await loadInterFonts();
@@ -42,6 +38,14 @@ export async function convertHtmlCssToFigma(
     }
   
     return [rootFrame];
+  }
+
+  function createCanvasForFigma(): FrameNode {
+    const canvas = figma.createFrame();
+    canvas.name = "HTML to Figma";
+    canvas.resize(800, 600);
+    canvas.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+    return canvas;
   }
 
   /**
