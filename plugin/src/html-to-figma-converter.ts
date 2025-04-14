@@ -57,15 +57,13 @@ async function processNode(
     parentNode: FrameNode | GroupNode,
     position = { x: 0, y: 0 },
   ): Promise<void> {
-    // Handle text nodes
     if (node.nodeType === NodeType.TEXT_NODE) {
       const textNode = node as HtmlTextNode;
       const trimmedText = textNode.text.trim();
       if (trimmedText) {
         // Create a text node for text content
         const text = figma.createText();
-        text.x = position.x;
-        text.y = position.y;
+        setNodeAtPosition(text, position)
         text.characters = trimmedText;
   
         // Apply text styles (default)
@@ -266,8 +264,7 @@ function getStylesForNode(
   ): FrameNode {
     const frame = figma.createFrame();
     frame.name = element.tagName ? element.tagName.toLowerCase() : "Frame";
-    frame.x = position.x;
-    frame.y = position.y;
+    setNodeAtPosition(frame, position)
   
     // Set size
     const width = styles.width ? parseInt(styles.width) : 200;
@@ -325,8 +322,7 @@ function getStylesForNode(
   ): Promise<TextNode> {
     // Create text node
     const text = figma.createText();
-    text.x = position.x;
-    text.y = position.y;
+    setNodeAtPosition(text, position)
   
     // Extract text content from element
     const textContent = element.text || "";
@@ -421,8 +417,7 @@ function getStylesForNode(
   ): FrameNode {
     const button = figma.createFrame();
     button.name = element.tagName ? element.tagName.toLowerCase() : "Button";
-    button.x = position.x;
-    button.y = position.y;
+    setNodeAtPosition(button, position)
   
     // Set size
     const width = styles.width ? parseInt(styles.width) : 120;
@@ -481,8 +476,7 @@ function getStylesForNode(
   ): RectangleNode {
     const rect = figma.createRectangle();
     rect.name = element.tagName ? element.tagName.toLowerCase() : "Rectangle";
-    rect.x = position.x;
-    rect.y = position.y;
+    setNodeAtPosition(rect, position)
   
     // Set size
     const width = styles.width ? parseInt(styles.width) : 100;
@@ -597,4 +591,9 @@ function getStylesForNode(
   
     return null;
   }
+}
+
+function setNodeAtPosition(node: DefaultShapeMixin, position: { x: number; y: number; }) {
+  node.x = position.x;
+  node.y = position.y;
 }
