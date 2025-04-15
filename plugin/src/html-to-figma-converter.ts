@@ -75,7 +75,6 @@ async function processNode(
       return;
     }
   
-    // Handle element nodes
     if (node.nodeType === NodeType.ELEMENT_NODE) {
       const element = node as HTMLElement;
       const tagName = element.tagName.toLowerCase();
