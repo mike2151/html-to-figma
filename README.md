@@ -21,3 +21,6 @@ One work around is to having an LLM produce a Figma is:
 3. Take that produced Figma node and paste it into a Figma file
 
 For 2, the only software solution is [html.to.design](https://www.figma.com/community/plugin/1159123024924461424), which costs money. This project aims to produce an open-source alternative 
+
+## Figma Plugin: Development
+Follow [this guide](https://www.figma.com/plugin-docs/plugin-quickstart-guide/)
