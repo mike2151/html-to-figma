@@ -4,88 +4,144 @@ import { parseHtml } from "./html-parser";
 import { HTMLElement, TextNode as HtmlTextNode, Node, NodeType } from "node-html-parser";
 import { CssRule } from "./types";
 
-  /**
-   * Load required fonts
-   */
-  async function loadInterFonts(): Promise<void> {
-    await Promise.all([
-      figma.loadFontAsync({ family: "Inter", style: "Regular" }),
-      figma.loadFontAsync({ family: "Inter", style: "Bold" }),
-    ]);
-  }
+/**
+ * Load required fonts
+ */
+async function loadInterFonts(): Promise<void> {
+  await Promise.all([
+    figma.loadFontAsync({ family: "Inter", style: "Regular" }),
+    figma.loadFontAsync({ family: "Inter", style: "Bold" }),
+  ]);
+}
 
 /**
  * Converts HTML and CSS to Figma nodes
  */
 export async function convertHtmlCssToFigma(
-    htmlString: string,
-    cssString: string,
-  ): Promise<SceneNode[]> {
-    const dom = parseHtml(htmlString);
-  
-    // Parse the CSS
-    const cssRules = parseCss(cssString);
-  
-    // Create a root frame to hold all elements
-    const rootFrame = createCanvasForFigma();
-  
-    // Load fonts before creating text nodes
-    await loadInterFonts();
-  
-    // Process the DOM tree and create Figma nodes
-    for (const node of dom) {
-      await processNode(node, cssRules, rootFrame);
-    }
-  
-    return [rootFrame];
+  htmlString: string,
+  cssString: string,
+): Promise<SceneNode[]> {
+  const dom = parseHtml(htmlString);
+
+  // Parse the CSS
+  const cssRules = parseCss(cssString);
+
+  // Create a root frame to hold all elements
+  const rootFrame = createCanvasForFigma();
+
+  // Load fonts before creating text nodes
+  await loadInterFonts();
+
+  // Process the DOM tree and create Figma nodes
+  for (const node of dom) {
+    await processNode(node, cssRules, rootFrame);
   }
 
-  function createCanvasForFigma(): FrameNode {
-    const canvas = figma.createFrame();
-    canvas.name = "HTML to Figma";
-    canvas.resize(800, 600);
-    canvas.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
-    return canvas;
-  }
+  // Resize the canvas to fit its content with some padding
+  resizeCanvasToFitContent(rootFrame);
 
-  /**
- * Process a DOM node and create corresponding Figma nodes
+  return [rootFrame];
+}
+
+function createCanvasForFigma(): FrameNode {
+  const canvas = figma.createFrame();
+  canvas.name = "HTML to Figma";
+
+  // Start with a default size - will be adjusted later based on content
+  canvas.resize(1, 1);
+  canvas.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+
+  // Set layout mode to help with auto-sizing
+  canvas.layoutMode = "NONE";
+
+  return canvas;
+}
+
+/**
+ * Resizes the canvas to fit all its children with some padding
  */
+function resizeCanvasToFitContent(canvas: FrameNode, padding: number = 20): void {
+  if (canvas.children.length === 0) {
+    // If no children, use a minimum size
+    canvas.resize(100, 100);
+    return;
+  }
+
+  // Find the bounds of all children
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const child of canvas.children) {
+    // Get the absolute bounds of each child
+    const childLeft = child.x;
+    const childTop = child.y;
+    const childRight = childLeft + child.width;
+    const childBottom = childTop + child.height;
+
+    // Update the bounds
+    minX = Math.min(minX, childLeft);
+    minY = Math.min(minY, childTop);
+    maxX = Math.max(maxX, childRight);
+    maxY = Math.max(maxY, childBottom);
+  }
+
+  // Calculate the new dimensions with padding
+  const newWidth = Math.max(1, maxX - minX + (padding * 2));
+  const newHeight = Math.max(1, maxY - minY + (padding * 2));
+
+  // Reposition all children to account for padding and any negative positions
+  const offsetX = padding - minX;
+  const offsetY = padding - minY;
+
+  for (const child of canvas.children) {
+    child.x += offsetX;
+    child.y += offsetY;
+  }
+
+  // Resize the canvas to fit the content
+  canvas.resize(newWidth, newHeight);
+}
+
+/**
+* Process a DOM node and create corresponding Figma nodes
+*/
 async function processNode(
-    node: Node,
-    cssRules: CssRule[],
-    parentNode: FrameNode | GroupNode,
-    position = { x: 0, y: 0 },
-  ): Promise<void> {
-    if (node.nodeType === NodeType.TEXT_NODE) {
-      const textNode = node as HtmlTextNode;
-      const trimmedText = textNode.text.trim();
-      if (trimmedText) {
-        // Create a text node for text content
-        const text = figma.createText();
-        setNodeAtPosition(text, position)
-        text.characters = trimmedText;
-  
-        // Apply text styles (default)
-        text.fontSize = 16;
-        text.fills = [{ type: "SOLID", color: { r: 0, g: 0, b: 0 } }];
-  
-        parentNode.appendChild(text);
-      }
-      return;
+  node: Node,
+  cssRules: CssRule[],
+  parentNode: FrameNode | GroupNode,
+  position = { x: 0, y: 0 },
+): Promise<void> {
+  if (node.nodeType === NodeType.TEXT_NODE) {
+    const textNode = node as HtmlTextNode;
+    const trimmedText = textNode.text.trim();
+    if (trimmedText) {
+      // Create a text node for text content
+      const text = figma.createText();
+      setNodeAtPosition(text, position)
+      text.characters = trimmedText;
+
+      // Apply text styles (default)
+      text.fontSize = 16;
+      text.fills = [{ type: "SOLID", color: { r: 0, g: 0, b: 0 } }];
+
+      parentNode.appendChild(text);
     }
-  
-    if (node.nodeType === NodeType.ELEMENT_NODE) {
-      const element = node as HTMLElement;
-      const tagName = element.tagName.toLowerCase();
-      
-      // Get styles for the node based on CSS rules
-      const styles = getStylesForNode(element, cssRules);
-    
-      // Create appropriate Figma node based on tag
-      let figmaNode: SceneNode;
-    
-      switch (tagName) {
+    return;
+  }
+
+  if (node.nodeType === NodeType.ELEMENT_NODE) {
+    const element = node as HTMLElement;
+    const tagName = element.tagName.toLowerCase();
+
+    // Get styles for the node based on CSS rules
+    const styles = getStylesForNode(element, cssRules);
+
+    // Create appropriate Figma node based on tag
+    let figmaNode: SceneNode;
+
+    switch (tagName) {
       case "div":
       case "section":
       case "article":
@@ -98,7 +154,7 @@ async function processNode(
         // Container elements become frames
         figmaNode = createFrameNode(element, styles, position);
         parentNode.appendChild(figmaNode);
-  
+
         // Process children
         if (element.childNodes && element.childNodes.length > 0) {
           let yOffset = 0;
@@ -117,7 +173,7 @@ async function processNode(
           }
         }
         break;
-  
+
       case "h1":
       case "h2":
       case "h3":
@@ -132,25 +188,25 @@ async function processNode(
         figmaNode = await createTextNode(element, styles, position) as unknown as SceneNode;
         parentNode.appendChild(figmaNode);
         break;
-  
+
       case "button":
       case "input":
         // Button elements
         figmaNode = createButtonNode(element, styles, position);
         parentNode.appendChild(figmaNode);
         break;
-  
+
       case "img":
         // Image elements (placeholder rectangle for now)
         figmaNode = createRectangleNode(element, styles, position);
         parentNode.appendChild(figmaNode);
         break;
-  
+
       default:
         // Default to a frame for unknown elements
         figmaNode = createFrameNode(element, styles, position);
         parentNode.appendChild(figmaNode);
-  
+
         // Process children
         if (element.childNodes && element.childNodes.length > 0) {
           let yOffset = 0;
@@ -166,22 +222,22 @@ async function processNode(
   }
 
 
-/**
- * Get styles for a DOM node based on CSS rules
- */
-function getStylesForNode(
+  /**
+   * Get styles for a DOM node based on CSS rules
+   */
+  function getStylesForNode(
     element: HTMLElement,
     cssRules: CssRule[],
   ): Record<string, string> {
     const styles: Record<string, string> = {};
-  
+
     // Process inline style
     const styleAttr = element.getAttribute('style');
     if (styleAttr) {
       const inlineStyles = parseInlineStyle(styleAttr);
       Object.assign(styles, inlineStyles);
     }
-  
+
     // Process CSS rules
     for (const rule of cssRules) {
       if (doesSelectorMatch(rule.selector, element)) {
@@ -189,46 +245,46 @@ function getStylesForNode(
         Object.assign(styles, rule.declarations);
       }
     }
-  
+
     return styles;
   }
-  
+
   /**
    * Parse inline style attribute
    */
   function parseInlineStyle(styleString: string): Record<string, string> {
     const styles: Record<string, string> = {};
     const declarations = styleString.split(";");
-  
+
     for (const declaration of declarations) {
       const parts = declaration.split(":");
       if (parts.length === 2) {
         const property = parts[0].trim();
         const value = parts[1].trim();
-  
+
         if (property && value) {
           styles[camelCase(property)] = value;
         }
       }
     }
-  
+
     return styles;
   }
-  
+
   /**
    * Check if a CSS selector matches a DOM node
    */
   function doesSelectorMatch(selector: string, element: HTMLElement): boolean {
     // This is a very simplified selector matching
     // In a real implementation, you'd need a more sophisticated approach
-  
+
     selector = selector.trim();
-    
+
     // Element selector
     if (selector.toLowerCase() === element.tagName.toLowerCase()) {
       return true;
     }
-  
+
     // Class selector
     if (selector.startsWith(".")) {
       const className = selector.substring(1);
@@ -240,7 +296,7 @@ function getStylesForNode(
         }
       }
     }
-  
+
     // ID selector
     if (selector.startsWith("#")) {
       const idName = selector.substring(1);
@@ -249,10 +305,10 @@ function getStylesForNode(
         return true;
       }
     }
-  
+
     return false;
   }
-  
+
   /**
    * Create a Figma frame node
    */
@@ -264,12 +320,12 @@ function getStylesForNode(
     const frame = figma.createFrame();
     frame.name = element.tagName ? element.tagName.toLowerCase() : "Frame";
     setNodeAtPosition(frame, position)
-  
+
     // Set size
     const width = styles.width ? parseInt(styles.width) : 200;
     const height = styles.height ? parseInt(styles.height) : 100;
     frame.resize(width, height);
-  
+
     // Set background color
     if (styles.backgroundColor) {
       const color = parseColor(styles.backgroundColor);
@@ -277,18 +333,18 @@ function getStylesForNode(
         frame.fills = [{ type: "SOLID", color }];
       }
     }
-  
+
     // Set border
     if (styles.borderWidth && styles.borderColor) {
       const borderWidth = parseInt(styles.borderWidth);
       const borderColor = parseColor(styles.borderColor);
-  
+
       if (borderWidth && borderColor) {
         frame.strokeWeight = borderWidth;
         frame.strokes = [{ type: "SOLID", color: borderColor }];
       }
     }
-  
+
     // Set border radius
     if (styles.borderRadius) {
       const borderRadius = parseInt(styles.borderRadius);
@@ -296,7 +352,7 @@ function getStylesForNode(
         frame.cornerRadius = borderRadius;
       }
     }
-  
+
     // Set padding
     if (styles.padding) {
       const padding = parseInt(styles.padding);
@@ -307,10 +363,10 @@ function getStylesForNode(
         frame.paddingLeft = padding;
       }
     }
-  
+
     return frame;
   }
-  
+
   /**
    * Create a Figma text node
    */
@@ -322,12 +378,12 @@ function getStylesForNode(
     // Create text node
     const text = figma.createText();
     setNodeAtPosition(text, position)
-  
+
     // Extract text content from element
     const textContent = element.text || "";
-  
+
     text.characters = textContent.trim();
-  
+
     // Set font size
     if (styles.fontSize) {
       let fontSize = parseInt(styles.fontSize);
@@ -382,7 +438,7 @@ function getStylesForNode(
           text.fontSize = 16;
       }
     }
-  
+
     // Set font color
     if (styles.color) {
       const color = parseColor(styles.color);
@@ -390,7 +446,7 @@ function getStylesForNode(
         text.fills = [{ type: "SOLID", color }];
       }
     }
-  
+
     // Set font weight
     if (styles.fontWeight) {
       // FontWeight needs to be supported by the font family
@@ -399,13 +455,13 @@ function getStylesForNode(
         styles.fontWeight === "bold" || parseInt(styles.fontWeight) >= 600
           ? "Bold"
           : "Regular";
-  
+
       text.fontName = { family: "Inter", style: fontWeight };
     }
-  
+
     return text;
   }
-  
+
   /**
    * Create a Figma button node
    */
@@ -417,12 +473,12 @@ function getStylesForNode(
     const button = figma.createFrame();
     button.name = element.tagName ? element.tagName.toLowerCase() : "Button";
     setNodeAtPosition(button, position)
-  
+
     // Set size
     const width = styles.width ? parseInt(styles.width) : 120;
     const height = styles.height ? parseInt(styles.height) : 40;
     button.resize(width, height);
-  
+
     // Set background color
     if (styles.backgroundColor) {
       const color = parseColor(styles.backgroundColor);
@@ -433,7 +489,7 @@ function getStylesForNode(
       // Default button color
       button.fills = [{ type: "SOLID", color: { r: 0.094, g: 0.627, b: 0.984 } }]; // #18A0FB
     }
-  
+
     // Set border radius
     if (styles.borderRadius) {
       const borderRadius = parseInt(styles.borderRadius);
@@ -445,10 +501,10 @@ function getStylesForNode(
     } else {
       button.cornerRadius = 4; // Default border radius
     }
-  
+
     // Extract button text
     const buttonText = element.text || "Button";
-  
+
     if (buttonText.trim()) {
       // Create text node for button label
       const text = figma.createText();
@@ -456,15 +512,15 @@ function getStylesForNode(
       text.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }]; // White text
       text.fontSize = 14;
       button.appendChild(text);
-  
+
       // Center the text in the button
       text.x = (width - text.width) / 2;
       text.y = (height - text.height) / 2;
     }
-  
+
     return button;
   }
-  
+
   /**
    * Create a Figma rectangle node (for images or other elements)
    */
@@ -476,13 +532,12 @@ function getStylesForNode(
     const rect = figma.createRectangle();
     rect.name = element.tagName ? element.tagName.toLowerCase() : "Rectangle";
     setNodeAtPosition(rect, position)
-  
+
     // Set size
     const width = styles.width ? parseInt(styles.width) : 100;
     const height = styles.height ? parseInt(styles.height) : 100;
     rect.resize(width, height);
-  
-    // Set background color
+
     if (styles.backgroundColor) {
       const color = parseColor(styles.backgroundColor);
       if (color) {
@@ -492,18 +547,17 @@ function getStylesForNode(
       // Default fill color
       rect.fills = [{ type: "SOLID", color: { r: 0.9, g: 0.9, b: 0.9 } }]; // Light gray
     }
-  
-    // Set border radius
+
     if (styles.borderRadius) {
       const borderRadius = parseInt(styles.borderRadius);
       if (borderRadius) {
         rect.cornerRadius = borderRadius;
       }
     }
-  
+
     return rect;
   }
-  
+
   /**
    * Parse CSS color value to Figma color object
    */
@@ -514,12 +568,12 @@ function getStylesForNode(
     if (colorValue.startsWith("#")) {
       return hexToRgb(colorValue);
     }
-  
+
     // Handle rgb/rgba colors
     if (colorValue.startsWith("rgb")) {
       return rgbStringToRgb(colorValue);
     }
-  
+
     // Handle named colors (simplified)
     switch (colorValue.toLowerCase()) {
       case "black":
@@ -545,14 +599,14 @@ function getStylesForNode(
         return null;
     }
   }
-  
+
   /**
    * Convert hex color to RGB
    */
   function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
     // Remove # if present
     hex = hex.replace(/^#/, "");
-  
+
     // Parse 3-digit hex
     if (hex.length === 3) {
       const r = parseInt(hex[0] + hex[0], 16) / 255;
@@ -560,7 +614,7 @@ function getStylesForNode(
       const b = parseInt(hex[2] + hex[2], 16) / 255;
       return { r, g, b };
     }
-  
+
     // Parse 6-digit hex
     if (hex.length === 6) {
       const r = parseInt(hex.substring(0, 2), 16) / 255;
@@ -568,10 +622,10 @@ function getStylesForNode(
       const b = parseInt(hex.substring(4, 6), 16) / 255;
       return { r, g, b };
     }
-  
+
     return null;
   }
-  
+
   /**
    * Convert rgb/rgba string to RGB object
    */
@@ -580,14 +634,14 @@ function getStylesForNode(
   ): { r: number; g: number; b: number } | null {
     // Extract values from rgb() or rgba()
     const match = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
-  
+
     if (match) {
       const r = parseInt(match[1]) / 255;
       const g = parseInt(match[2]) / 255;
       const b = parseInt(match[3]) / 255;
       return { r, g, b };
     }
-  
+
     return null;
   }
 }
