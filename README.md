@@ -25,7 +25,17 @@ For 2, the only software solution is [html.to.design](https://www.figma.com/comm
 ## Figma Plugin: Development
 Follow [this guide](https://www.figma.com/plugin-docs/plugin-quickstart-guide/)
 
-## Running Tests:
+### Getting Set Up
+Install dependencies:
+```
+cd plugin
+```
+
+```
+npm install
+```
+
+### Running Tests:
 ```
 cd plugin
 ```
