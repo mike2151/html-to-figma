@@ -23,7 +23,7 @@ One work around is to having an LLM produce a Figma is:
 For 2, the only software solution is [html.to.design](https://www.figma.com/community/plugin/1159123024924461424), which costs money. This project aims to produce an open-source alternative 
 
 ## Figma Plugin: Development
-Follow [this guide](https://www.figma.com/plugin-docs/plugin-quickstart-guide/)
+Follow [this guide](https://www.figma.com/plugin-docs/plugin-quickstart-guide/) for how to build and test a Figma Plugin
 
 ### Getting Set Up
 Install dependencies:
