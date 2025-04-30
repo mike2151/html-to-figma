@@ -43,3 +43,17 @@ cd plugin
 ```
 npm run test
 ```
+
+## Web App Development:
+### Running Locally:
+```
+cd web-app
+```
+
+```
+npm install
+```
+
+```
+npm run dev
+```
