@@ -6,6 +6,8 @@ export type MockFrameNode = {
   appendChild: jest.Mock;
   x: number;
   y: number;
+  children: any[];
+  layoutMode: string;
 };
 
 export type MockTextNode = {
@@ -18,14 +20,23 @@ export type MockTextNode = {
 };
 
 export function createMockFrameNode(): MockFrameNode {
-  return {
+  // Create the mock object
+  const mockFrameNode: MockFrameNode = {
     name: '',
     resize: jest.fn(),
     fills: [],
-    appendChild: jest.fn(),
+    appendChild: jest.fn((child) => {
+      // When appendChild is called, add the child to the children array
+      mockFrameNode.children.push(child);
+      return child;
+    }),
     x: 0,
-    y: 0
+    y: 0,
+    children: [],
+    layoutMode: 'NONE'
   };
+  
+  return mockFrameNode;
 }
 
 export function createMockTextNode(): MockTextNode {
