@@ -6,7 +6,7 @@
 Figma Plugin to convert HTML to Figma. Open source version of [html.to.design](https://www.figma.com/community/plugin/1159123024924461424)
 
 ## Repository Structure:
-- `web-app`: Code for the web page describing the product, located at 
+- `web-app`: Code for the web page describing the product
 - `plugin`: Figma plugin that is directly used in the Figma app
 
 ## Motiviation
