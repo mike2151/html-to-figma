@@ -1,5 +1,5 @@
 import { parseCss } from "./css-parser";
-import { camelCase } from "./figma-conversion-utils";
+import { getCamelCaseFromKebabCase } from "./figma-conversion-utils";
 import { parseHtml } from "./html-parser";
 import { HTMLElement, TextNode as HtmlTextNode, Node, NodeType } from "node-html-parser";
 import { CssRule } from "./types";
@@ -263,7 +263,7 @@ async function processNode(
         const value = parts[1].trim();
 
         if (property && value) {
-          styles[camelCase(property)] = value;
+          styles[getCamelCaseFromKebabCase(property)] = value;
         }
       }
     }
