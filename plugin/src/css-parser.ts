@@ -1,4 +1,4 @@
-import { camelCase } from "./figma-conversion-utils";
+import { getCamelCaseFromKebabCase } from "./figma-conversion-utils";
 import { CssRule } from "./types";
 
 export function parseCss(cssString: string): CssRule[] {
@@ -26,7 +26,7 @@ export function parseCss(cssString: string): CssRule[] {
     while ((declMatch = declarationRegex.exec(declarationBlock)) !== null) {
       const property = declMatch[1].trim();
       const value = declMatch[2].trim();
-      declarations[camelCase(property)] = value;
+      declarations[getCamelCaseFromKebabCase(property)] = value;
     }
 
     // Create a rule for each selector
